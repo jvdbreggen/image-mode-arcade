@@ -3,3 +3,5 @@ cr_pat.txt
 .vscode
 *auth.json
 *.code-workspace
+*.nes
+*.rom
