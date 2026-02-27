@@ -1,0 +1,18 @@
+FROM ghcr.io/redhat-uk-arcade/arcade-base:10.1
+
+#RUN dnf repolist --all
+#RUN subscription-manager repos --enable rhel-10-for-aarch64-baseos-rpms --enable rhel-10-for-aarch64-appstream-rpms
+RUN dnf -y install nodejs && dnf clean
+
+#Cloning the Pity About Earth Repo
+RUN mkdir /app
+WORKDIR /app
+RUN git clone https://github.com/ScriptaGames/pityaboutearth.git
+
+# Installing npm dependencies
+WORKDIR /app/pityaboutearth
+RUN npm install
+
+# Starting npm server
+COPY ./pae.service /etc/systemd/system
+RUN systemctl enable pae.service

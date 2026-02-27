@@ -1,0 +1,9 @@
+# FROM quay.io/jvdbreggen/arcade-os:latest
+FROM localhost/arcade_rom:latest
+
+# 1. Copy your NES ROM
+COPY asteroids.nes /opt/retroarch/roms/asteroids.nes
+
+# 2. Autostart retroarch 
+COPY retro_arcade.sh /opt/arcade/
+RUN chmod +x /opt/arcade/retro_arcade.sh

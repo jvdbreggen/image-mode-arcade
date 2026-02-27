@@ -1,0 +1,62 @@
+# FROM ghcr.io/redhat-uk-arcade/arcade-base:10.1x86
+FROM localhost/arcade_base_x86:latest
+
+# 1. Enable RHEL CodeReady Builder (Required for dependencies)
+RUN dnf config-manager --set-enabled codeready-builder-for-rhel-10-$(uname -m)-rpms
+
+# 2. Install EPEL 10 and Flatpak
+# We replace the RPM Fusion setup with Flatpak and tools to download the core
+RUN dnf install -y \
+    https://dl.fedoraproject.org/pub/epel/epel-release-latest-10.noarch.rpm \
+    flatpak \
+    wget \
+    && dnf clean all
+
+# 3. Configure Flathub and Install RetroArch
+# We add the remote and install the application system-wide
+RUN flatpak remote-add flathub https://dl.flathub.org/repo/flathub.flatpakrepo
+RUN flatpak install -y flathub org.libretro.RetroArch
+
+# 4. Manually Download the Nestopia (NES) Core
+# Since we are in a build, we can't easily use the RetroArch Online Updater.
+# We download the Linux x86_64 core directly from the buildbot.
+RUN mkdir -p /opt/retroarch/cores && \
+    wget -O /tmp/nestopia.zip "https://buildbot.libretro.com/nightly/linux/x86_64/latest/nestopia_libretro.so.zip" && \
+    unzip /tmp/nestopia.zip -d /opt/retroarch/cores && \
+    rm /tmp/nestopia.zip
+
+# 5. Setup ROM Directory
+RUN mkdir -p /opt/retroarch/roms
+
+# 6. Copy your NES ROM
+# Commented as the ROM should be added in the child image layer. You can copy your own ROM here.
+# Recommend to build the VM from the child image that contains a ROM.
+# COPY pacman.nes /opt/retroarch/roms/pacman.nes
+
+# 7. Grant Flatpak Access to Cores and ROMs
+# By default, Flatpak can't see /opt. We override this permission.
+RUN flatpak override --filesystem=/opt/retroarch org.libretro.RetroArch
+
+# 8. Autostart retroarch 
+RUN mkdir -p /opt/arcade/
+COPY retro_arcade.sh /opt/arcade/
+RUN chmod +x /opt/arcade/retro_arcade.sh
+
+# 9. Configure RetroArch (Optional default config)
+# Flatpak configs live in ~/.var/app/org.libretro.RetroArch/config
+# We can pre-seed this for root
+RUN mkdir -p /root/.var/app/org.libretro.RetroArch/config/retroarch && \
+echo "video_fullscreen = \"true\"" >> /root/.var/app/org.libretro.RetroArch/config/retroarch/retroarch.cfg && \
+echo "audio_driver = \"alsa\"" >> /root/.var/app/org.libretro.RetroArch/config/retroarch/retroarch.cfg
+
+# 10. Populating autostart for launching Arcade games
+RUN mkdir -p /var/home/redhat/.config/autostart
+COPY arcade_autostart.desktop /var/home/redhat/.config/autostart
+RUN chmod 755 /var/home/redhat/.config/autostart && \
+chmod 644 /var/home/redhat/.config/autostart/arcade_autostart.desktop
+
+# 11. Populating applications for launching Arcade games
+RUN mkdir -p /var/home/redhat/.local/share/applications
+COPY arcade.desktop /var/home/redhat/.local/share/applications/
+RUN chmod 755 /var/home/redhat/.local/share/applications && \
+chmod 644 /var/home/redhat/.local/share/applications/arcade.desktop

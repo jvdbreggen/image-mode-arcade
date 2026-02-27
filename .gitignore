@@ -1,0 +1,5 @@
+cr_pat.txt
+.rhc*
+.vscode
+*auth.json
+*.code-workspace

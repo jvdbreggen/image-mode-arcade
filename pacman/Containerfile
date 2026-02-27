@@ -1,0 +1,10 @@
+# FROM ghcr.io/redhat-uk-arcade/arcade-base:10.1x86
+# FROM quay.io/jvdbreggen/arcade-os:latest
+FROM localhost/arcade_rom:latest
+
+# 1. Copy your NES ROM
+COPY pacman.nes /opt/retroarch/roms/pacman.nes
+
+# 2. Autostart retroarch 
+COPY retro_arcade.sh /opt/arcade/
+RUN chmod +x /opt/arcade/retro_arcade.sh

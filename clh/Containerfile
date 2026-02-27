@@ -1,0 +1,23 @@
+FROM ghcr.io/redhat-uk-arcade/arcade_base_x86:latest
+
+RUN dnf -y install gnome-kiosk gnome-kiosk-script-session firefox nodejs \ 
+  && dnf clean all
+# Install the app src code
+RUN mkdir /app
+WORKDIR /app
+RUN git clone https://github.com/CommandLineHeroes/clh-bash.git
+
+WORKDIR /app/clh-bash
+RUN npm install
+RUN npm run extract
+RUN npm run unzip
+
+COPY ./clh.service /etc/systemd/system
+RUN systemctl enable clh.service
+
+# setup to run browser on startup
+USER redhat
+RUN mkdir -p /home/redhat/.config/autostart
+COPY firefox.desktop /home/redhat/.config/autostart
+RUN chmod 644 /home/redhat/.config/autostart
+
