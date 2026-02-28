@@ -5,3 +5,5 @@ cr_pat.txt
 *.code-workspace
 *.nes
 *.rom
+nes_*
+mamerom_*
