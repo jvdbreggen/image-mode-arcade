@@ -1,5 +1,5 @@
 # FROM ghcr.io/redhat-uk-arcade/arcade-base:10.1x86
-FROM localhost/arcade_base_x86:latest
+FROM localhost/arcade-os:latest
 
 # 1. Enable RHEL CodeReady Builder (Required for dependencies)
 RUN dnf config-manager --set-enabled codeready-builder-for-rhel-10-$(uname -m)-rpms
