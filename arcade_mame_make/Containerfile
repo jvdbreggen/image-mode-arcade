@@ -1,0 +1,45 @@
+# FROM ghcr.io/redhat-uk-arcade/arcade-base:10.1x86
+FROM localhost/arcade-os:latest
+
+# 1. Enable RHEL CodeReady Builder (Required for dependencies)
+RUN dnf config-manager --set-enabled codeready-builder-for-rhel-10-$(uname -m)-rpms
+
+# 2. Install EPEL 10 and Flatpak
+# We replace the RPM Fusion setup with Flatpak and tools to download the core
+RUN dnf install -y \
+    https://dl.fedoraproject.org/pub/epel/epel-release-latest-10.noarch.rpm \
+    gcc gcc-c++ SDL2-devel SDL2_ttf-devel libXi-devel libXinerama-devel qt5-qtbase-devel qt5-qttools \
+    expat-devel fontconfig-devel alsa-lib-devel pulseaudio-libs-devel lld llvm \
+    && dnf clean all
+
+# 3. Git clone MAME source code    
+RUN git clone -b mame0286 --depth 1 https://github.com/mamedev/mame.git /opt/mame
+
+# 4. Build MAME with libc++
+RUN cd /opt/mame && \
+    env LDFLAGS=-stdlib=libc++ make OVERRIDE_CC=clang OVERRIDE_CXX=clang++ ARCHOPTS_CXX=-stdlib=libc++ ARCHOPTS_OBJCXX=-stdlib=libc++
+
+# 5. Build MAME standard    
+RUN cd /opt/mame && make
+
+COPY mame.ini /opt/mame/mame.ini
+
+# 6. Setup ROM Directory
+RUN mkdir -p /opt/mame/roms
+
+# 8. Autostart retroarch 
+RUN mkdir -p /opt/arcade/
+COPY mame_arcade.sh /opt/arcade/
+RUN chmod +x /opt/arcade/mame_arcade.sh
+
+# 10. Populating autostart for launching Arcade games
+RUN mkdir -p /var/home/redhat/.config/autostart
+COPY arcade_autostart.desktop /var/home/redhat/.config/autostart
+RUN chmod 755 /var/home/redhat/.config/autostart && \
+chmod 644 /var/home/redhat/.config/autostart/arcade_autostart.desktop
+
+# 11. Populating applications for launching Arcade games
+RUN mkdir -p /var/home/redhat/.local/share/applications
+COPY arcade.desktop /var/home/redhat/.local/share/applications/
+RUN chmod 755 /var/home/redhat/.local/share/applications && \
+chmod 644 /var/home/redhat/.local/share/applications/arcade.desktop
