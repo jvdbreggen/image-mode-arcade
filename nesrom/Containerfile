@@ -1,0 +1,12 @@
+# FROM ghcr.io/redhat-uk-arcade/arcade-base:10.1x86
+# FROM quay.io/jvdbreggen/arcade-os:latest
+FROM localhost/arcade-nes:latest
+
+# Note: You need to download a NES ROM and place it in the same directory as this Containerfile
+# and replace "nesrom.zip" in this Containerfile and in retro_arcade.sh with the filename of the .nes ROM file.
+# 1. Copy your MAME ROM zip file
+COPY mamerom.zip /opt/retroarch/roms/nesrom.nes
+
+# 2. Autostart retroarch 
+COPY retro_arcade.sh /opt/arcade/
+RUN chmod +x /opt/arcade/retro_arcade.sh
