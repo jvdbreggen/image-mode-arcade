@@ -1,5 +1,3 @@
-# FROM ghcr.io/redhat-uk-arcade/arcade-base:10.1x86
-# FROM quay.io/jvdbreggen/arcade-os:latest
 FROM localhost/arcade-nes:latest
 
 # Note: You need to download a NES ROM and place it in the same directory as this Containerfile
