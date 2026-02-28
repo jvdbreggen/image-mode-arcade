@@ -3,11 +3,9 @@ FROM registry.redhat.io/rhel10/rhel-bootc:10.1
 # COPY the auth.json to enable the image to authenticate with GHCR
 COPY ./auth.json /etc/ostree/
 
-# Install tmux and mkpasswd
-# Add all the RPMs that need to be installed in a single layer to reduce the number of layers in the image and optimize the build process.
-# This also helps in reducing the overall image size by minimizing the number of intermediate layers created during the build process.
-# For testing purposes, we are installing tmux and mkpasswd in a separate layer, but in production, it's recommended to combine all the package installations in the next steps into a single layer.
-RUN dnf -y install tmux mkpasswd && dnf clean all
+# Install RPMs and clean up the cache in the same layer to optimize the build process and reduce the image size by minimizing the number of layers created during the build process. This also helps in reducing the overall image size by minimizing the number of intermediate layers created during the build process.
+RUN dnf -y install tmux mkpasswd git unzip \ 
+    && dnf clean all
 
 RUN pass=$(mkpasswd --method=SHA-512 --rounds=4096 redhat) && useradd -m -G wheel redhat -p $pass
 RUN echo "%wheel        ALL=(ALL)       NOPASSWD: ALL" > /etc/sudoers.d/wheel-sudo
@@ -19,38 +17,6 @@ RUN systemctl set-default graphical.target
 
 # Remove GNOME initial setup and tour to avoid first boot pop-ups
 RUN sudo dnf remove -y gnome-initial-setup gnome-tour
-
-# Install necessary packages for hardware and system management
-# RUN subscription-manager repos --enable rhel-10-for-aarch64-baseos-rpms --enable rhel-10-for-aarch64-appstream-rpms
-# I have removed the following packages from the base image as they are useful for testing and debugging purposes, but they are not essential for the basic functionality of the image. if you want to include them in the base image, you can add the following lines.
-# tcpdump stress-ng iptraf-ng strace cockpit-ostree
-
-# Uncomment if you are installing to a micro PC
-RUN dnf install -y bluez pciutils usbutils \
-                   cockpit cockpit-podman cockpit-files cockpit-ostree cockpit-system \
-                   NetworkManager-wifi kernel-modules-extra \
-                   git unzip \ 
-                   linux-firmware iwlwifi-dvm-firmware iwlwifi-mvm-firmware \
-                   && dnf clean all
-
-# Uncomment if you are testing this in a virtual machine
-# RUN dnf install -y cockpit cockpit-podman cockpit-files cockpit-system \
-#                    git unzip \ 
-#                    && dnf clean all
-
-
-# I couldn't find the need to install java, firefox, python in the base image as they are not required for the basic functionality of the image, but if you want to include them in the base image, you can uncomment the following lines. Rather add them to the first dnf install command to optimize the build process and reduce the image size by minimizing the number of layers created during the build process.
-# However, it's recommended to install them in a separate layer if it is required for the Command Line Heros. Add this in the clh Containerfile and keep it out of the arcade_rom image.
-# Use dnf (not yum) for installation, it is more efficient and optimized for RHEL 10, and it will handle dependencies better than installing them separately.
-# RUN dnf install -y java-21-openjdk firefox && dnf clean all 
-# RUN dnf install -y python3 && dnf clean all
-
-# Not needed in the runtime
-#RUN dnf groupinstall "Development Tools"
-#RUN dnf install gcc-c++ make
-
-RUN systemctl enable cockpit.socket sshd.service 
-# RUN systemctl enable bluetooth.service bluetooth-init.service
 
 # Registering machine to Red Hat Insights
 # Populate the .rhc_connect_credentials file with RHC_ACT_KEY=activation key and RHC_ORG_ID=organization id.
