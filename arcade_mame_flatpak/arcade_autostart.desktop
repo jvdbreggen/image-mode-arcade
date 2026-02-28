@@ -1,0 +1,6 @@
+[Desktop Entry]
+Type=Application
+Name=Arcade Startup Script
+Exec=/opt/arcade/mame_arcade.sh
+X-GNOME-Autostart-enabled=true
+Terminal=false
