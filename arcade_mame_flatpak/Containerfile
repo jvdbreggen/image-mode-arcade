@@ -1,4 +1,3 @@
-# FROM ghcr.io/redhat-uk-arcade/arcade-base:10.1x86
 FROM localhost/arcade-os:latest
 
 # 1. Enable RHEL CodeReady Builder (Required for dependencies)
