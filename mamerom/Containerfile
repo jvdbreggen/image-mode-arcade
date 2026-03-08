@@ -7,4 +7,4 @@ COPY mamerom.zip /opt/mame/roms/mamerom.zip
 
 # 2. Autostart retroarch 
 COPY mame_arcade.sh /opt/arcade/
-RUN chmod +x /opt/arcade/mame_arcade.sh
+RUN chmod +x /opt/arcade/retro_arcade.sh

@@ -42,8 +42,8 @@ RUN flatpak override --filesystem=/opt/mame org.mamedev.MAME
 
 # 8. Autostart retroarch 
 RUN mkdir -p /opt/arcade/
-COPY mame_arcade.sh /opt/arcade/
-RUN chmod +x /opt/arcade/mame_arcade.sh
+COPY retro_arcade.sh /opt/arcade/
+RUN chmod +x /opt/arcade/retro_arcade.sh
 
 # 9. Configure RetroArch (Optional default config)
 # Flatpak configs live in ~/.var/app/org.libretro.RetroArch/config

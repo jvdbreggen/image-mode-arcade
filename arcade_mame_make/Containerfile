@@ -28,8 +28,8 @@ RUN mkdir -p /opt/mame/roms
 
 # 8. Autostart retroarch 
 RUN mkdir -p /opt/arcade/
-COPY mame_arcade.sh /opt/arcade/
-RUN chmod +x /opt/arcade/mame_arcade.sh
+COPY retro_arcade.sh /opt/arcade/
+RUN chmod +x /opt/arcade/retro_arcade.sh
 
 # 10. Populating autostart for launching Arcade games
 RUN mkdir -p /var/home/redhat/.config/autostart
