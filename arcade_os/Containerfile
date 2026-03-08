@@ -25,6 +25,9 @@ COPY rhc-connect.service /usr/lib/systemd/system/rhc-connect.service
 COPY .rhc_connect_credentials /etc/rhc/.rhc_connect_credentials
 RUN systemctl enable rhc-connect && touch /etc/rhc/.run_rhc_connect_next_boot
 
+# Configure the display resolution using gdctl. This is necessary to set the display resolution for the graphical environment, which is important for running arcade games that may require specific resolutions for optimal performance and display quality. The current configuration is set to 800x600 at 60.317 Hz, which is suitable for many arcade games and should work well in a QEMU VM environment.
+RUN gdctl set --persistent --logical-monitor --primary --monitor Virtual-1 --mode 800x600@60.317
+
 # Configuring autologin
 COPY custom.conf /etc/gdm
 
