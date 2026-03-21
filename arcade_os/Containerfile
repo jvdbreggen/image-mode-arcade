@@ -1,22 +1,21 @@
 FROM registry.redhat.io/rhel10/rhel-bootc:10.1
 
-# COPY the auth.json to enable the image to authenticate with GHCR
-COPY ./auth.json /etc/ostree/
-
 # Install RPMs and clean up the cache in the same layer to optimize the build process and reduce the image size by minimizing the number of layers created during the build process. This also helps in reducing the overall image size by minimizing the number of intermediate layers created during the build process.
-RUN dnf -y install tmux mkpasswd git unzip \ 
-    && dnf clean all
+# Install GNOME and enable graphical.target as default
+# Remove GNOME initial setup and tour to avoid first boot pop-ups
+
+RUN dnf -y install tmux mkpasswd git unzip && \
+    dnf group install -y --allowerasing GNOME Fonts && \
+    dnf remove -y gnome-initial-setup gnome-tour && \
+    dnf clean all
 
 RUN pass=$(mkpasswd --method=SHA-512 --rounds=4096 redhat) && useradd -m -G wheel redhat -p $pass
 RUN echo "%wheel        ALL=(ALL)       NOPASSWD: ALL" > /etc/sudoers.d/wheel-sudo
 
-# Install GNOME and enable graphical.target as default
-# As this is a dnf group install it will stay in a separate layer, but all the individual package installations will be combined in the next step to optimize the build process and reduce the image size.
-RUN dnf group install -y --allowerasing GNOME Fonts && dnf clean all
 RUN systemctl set-default graphical.target
 
-# Remove GNOME initial setup and tour to avoid first boot pop-ups
-RUN sudo dnf remove -y gnome-initial-setup gnome-tour
+# COPY the auth.json to enable the image to authenticate with GHCR
+COPY ./auth.json /etc/ostree/
 
 # Registering machine to Red Hat Insights
 # Populate the .rhc_connect_credentials file with RHC_ACT_KEY=activation key and RHC_ORG_ID=organization id.
@@ -25,26 +24,29 @@ COPY rhc-connect.service /usr/lib/systemd/system/rhc-connect.service
 COPY .rhc_connect_credentials /etc/rhc/.rhc_connect_credentials
 RUN systemctl enable rhc-connect && touch /etc/rhc/.run_rhc_connect_next_boot
 
-# Configure the display resolution using gdctl. This is necessary to set the display resolution for the graphical environment, which is important for running arcade games that may require specific resolutions for optimal performance and display quality. The current configuration is set to 800x600 at 60.317 Hz, which is suitable for many arcade games and should work well in a QEMU VM environment.
-RUN gdctl set --persistent --logical-monitor --primary --monitor Virtual-1 --mode 800x600@60.317
-
 # Configuring autologin
-COPY custom.conf /etc/gdm
+COPY custom.conf /etc/gdm/
 
-# Configure the display resolution
+# Configure the display resolution using tmpfiles to persist the default configuration.
 # May have to be adjusted based on the monitor you are using. The current configuration is for 800x600 QEMU VM resolution, where the arcade game was full screen.
-COPY monitors.xml /var/lib/gdm/.config/monitors.xml
+COPY monitors.xml /usr/share/gdm/monitors.xml
 
-# Turning off Automatic Overview when a user is logged into
-COPY dash-to-dock.zip /tmp/
-RUN mkdir -p /usr/share/gnome-shell/extensions/dash-to-dock@micxgx.gmail.com && \
-    unzip /tmp/dash-to-dock.zip -d /usr/share/gnome-shell/extensions/dash-to-dock@micxgx.gmail.com/ && \
+# Turning off Automatic Overview when a user is logged into - ADD extracts the archive and creates intermediate directories.
+# ADD dash-to-dock.tar.gz /usr/share/gnome-shell/extensions/dash-to-dock@micxgx.gmail.com/
+
+# Download dash-to-dock to /usr for tmpfiles provisioning
+RUN mkdir -p /usr/share/dash-to-dock && \
+    curl -L https://github.com/micheleg/dash-to-dock/releases/download/extensions.gnome.org-v103/dash-to-dock@micxgx.gmail.com.zip \
+        -o /tmp/dash-to-dock.zip && \
+    unzip /tmp/dash-to-dock.zip -d /usr/share/dash-to-dock && \
     rm /tmp/dash-to-dock.zip
 
-RUN ln -s /usr/share/gnome-shell/extensions/dash-to-dock@micxgx.gmail.com/schemas/org.gnome.shell.extensions.dash-to-dock.gschema.xml \
-    /usr/share/glib-2.0/schemas/ && \
-    glib-compile-schemas /usr/share/glib-2.0/schemas/
-    
+COPY tmpfiles.d/ /usr/lib/tmpfiles.d/
+
+# RUN ln -s /usr/share/gnome-shell/extensions/dash-to-dock@micxgx.gmail.com/schemas/org.gnome.shell.extensions.dash-to-dock.gschema.xml \
+#     /usr/share/glib-2.0/schemas/ && \
+#     glib-compile-schemas /usr/share/glib-2.0/schemas/
+
 RUN mkdir -p /etc/dconf/profile && \
     printf "user-db:user\nsystem-db:local\n" > /etc/dconf/profile/user
 
@@ -52,21 +54,12 @@ RUN mkdir -p /etc/dconf/db/local.d/ && \
     printf "[org/gnome/shell/extensions/dash-to-dock]\ndisable-overview-on-startup=true\n" \
     > /etc/dconf/db/local.d/01-dash-to-dock
 
-# Not working as expected, need to investigate further as the user is in /var/home/redhat    
-# # Disabling screen lock
-# RUN dconf write /org/gnome/desktop/screensaver lock-enabled "'false'"    
-RUN printf "[org/gnome/desktop/screensaver]\nlock-enabled=false\n" \ 
-   > /etc/dconf/db/local.d/02-lock-enable
+# Disable screen lock and power saving for VM use. dconf, as gdctl, doesn't work at build time.
+RUN printf "[org/gnome/desktop/screensaver]\nlock-enabled=false\nlock-delay=uint32 0\n\n[org/gnome/desktop/session]\nidle-delay=uint32 0\n" \
+    > /etc/dconf/db/local.d/02-disable-power-saving
 
-
-# # Disable screen lock delay for VMs
-# RUN dconf write /org/gnome/desktop/screensaver/lock-delay "'uint32 0'"
-RUN printf "[org/gnome/desktop/screensaver]\nlock-delay=0\n" \
-   > /etc/dconf/db/local.d/03-lock-delay
-   
-# # Disable screen power saving for VMs
-# RUN dconf write /org/gnome/desktop/session/idle-delay "'uint32 0'"
-RUN printf "[org/gnome/desktop/session]\nidle-delay=0\n" \
-  > etc/dconf/db/local.d/04-idle-delay
+# Enable dash-to-dock
+RUN printf "[org/gnome/shell]\nenabled-extensions=['dash-to-dock@micxgx.gmail.com', 'background-logo@fedorahosted.org']\n" \
+    > /etc/dconf/db/local.d/03-enable-extensions
 
 RUN dconf update
