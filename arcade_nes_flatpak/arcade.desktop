@@ -1,6 +1,0 @@
-[Desktop Entry]
-Type=Application
-Name=Arcade Game
-Exec=/opt/arcade/retro_arcade.sh
-X-GNOME-Autostart-enabled=true
-Terminal=false
