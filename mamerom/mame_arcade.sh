@@ -6,4 +6,4 @@
 # /opt/mame/mame /opt/mame/roms/mamerom.zip
 
 # Comment if you are running this on a Mame make OS. Make sure to place the MAME ROM in /opt/mame/roms and update the filename in the command below.
-/usr/bin/flatpak run org.mamedev.MAME /opt/mame/roms/mamerom.zip
+/usr/bin/flatpak run org.mamedev.MAME mamerom.zip
