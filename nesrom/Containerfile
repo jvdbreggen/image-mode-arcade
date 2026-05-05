@@ -6,5 +6,4 @@ FROM localhost/arcade-nes:latest
 COPY mamerom.zip /opt/retroarch/roms/nesrom.nes
 
 # 2. Autostart retroarch 
-COPY retro_arcade.sh /opt/arcade/
-RUN chmod +x /opt/arcade/retro_arcade.sh
+COPY --chmod=755 retro_arcade.sh /opt/arcade/retro_arcade.sh
